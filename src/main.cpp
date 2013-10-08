@@ -9,7 +9,9 @@ void printFloat(
     out << name << ":" << std::endl;
     out << f.ToString() << std::endl
         << f.ToString(true) << std::endl
-        << f.GetFlags() << std::endl;
+        << f.GetFlags() << std::endl
+        << "MAX: +-" << f.GetMaximum() << " && "
+        << "MIN: +-" << f.GetMinimum() << std::endl;
     out << std::endl;
 }
 
@@ -31,40 +33,38 @@ void tryPrintFloat(
 int main()
 {
     FloatingPoint
-        zero,
-        max,
-        min,
+        eightBits( 3, 4 ),
+        sixteenBits( 5, 10 ),
+        thirtyTwoBits( 8, 23 ),
+        sixtyFourBits( 11, 52 ),
         f,
         g,
         keks;
 
-    zero.SetValue( 0 );
+    eightBits = 7.7;
 
-    max.SetSignBit( false );
-    max.SetExponent( 127 );
-    max.SetMantissa( 2.0 );
+    sixteenBits = 1337.7331;
 
-    min.SetSignBit( false );
-    min.SetExponent( -126 );
-    min.SetMantissa( 1.0 );
-
-    f = -3.1415f;
+    f = -3.1415;
 
     g.SetValue( "11111111111111111111111111111111" );
 
-    keks = f;
+    tryPrintFloat( std::cout, "eightBits", eightBits );
 
-    tryPrintFloat( std::cout, "zero", zero );
+    tryPrintFloat( std::cout, "sixteenBits", sixteenBits );
 
-    tryPrintFloat( std::cout, "max", max );
+    tryPrintFloat( std::cout, "thirtyTwoBits", thirtyTwoBits );
 
-    tryPrintFloat( std::cout, "min", min );
+    tryPrintFloat( std::cout, "sixtyFourBits", sixtyFourBits );
 
     tryPrintFloat( std::cout, "f", f );
 
     tryPrintFloat( std::cout, "g", g );
 
-    tryPrintFloat( std::cout, "keks", keks );
+    g.SetSignBit( true );
+    g.SetMantissa( 1.0 );
+
+    tryPrintFloat( std::cout, "g", g );
 
     return 0;
 }

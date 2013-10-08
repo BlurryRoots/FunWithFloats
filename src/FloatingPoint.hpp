@@ -20,6 +20,9 @@ class FloatingPoint
         const std::size_t mantissaBits;
         const int excess;
 
+        long double maxValue;
+        long double minValue;
+
         bool sign;
         bool* const exponent;
         bool* const mantissa;
@@ -81,12 +84,22 @@ class FloatingPoint
         {
             if( someOther.exponentBits != this->exponentBits )
             {
-                throw new std::range_error( "Expontent bits are different!" );
+                throw new std::range_error( 
+                    "Expontent bits are different!" 
+                );
             }
             else if( someOther.mantissaBits != this->mantissaBits )
             {
-                throw new std::range_error( "Mantissa bits are different!" );
+                throw new std::range_error(
+                    "Mantissa bits are different!"
+                );
             }
+        }
+
+        void Cleanup()
+        {
+            delete [] this->exponent;
+            delete [] this->mantissa;            
         }
 
     public:
@@ -101,26 +114,70 @@ class FloatingPoint
               exponent( new bool[someExponentBits] ),
               mantissa( new bool[someMantissaBits] ),
               isNotANumber( false ),
-              isZero( true ),
+              isZero( false ),
               isInfinite( false )
         {
+            if( this->GetBitSize() > 64 )
+            {
+                this->Cleanup();
+
+                throw new std::range_error(
+                    "Maximum 64bits supported!"
+                );
+            }
+
+            this->sign = false;
+
+            //max value
+            for( std::size_t i = 0; i < this->exponentBits; ++i )
+            {
+                this->exponent[i] = true;
+            }
+            this->exponent[this->exponentBits-1] = false;
+
+            for( std::size_t i = 0; i < this->mantissaBits; ++i )
+            {
+                this->mantissa[i] = true;
+            }
+
+            this->maxValue = this->GetValue();
+
+            //min value
             for( std::size_t i = 0; i < this->exponentBits; ++i )
             {
                 this->exponent[i] = false;
             }
+            this->exponent[this->exponentBits-1] = true;
 
             for( std::size_t i = 0; i < this->mantissaBits; ++i )
             {
                 this->mantissa[i] = false;
             }
 
+            this->minValue = this->GetValue();
+
             this->UpdateFlags();
         }
 
         ~FloatingPoint()
         {
-            delete [] this->exponent;
-            delete [] this->mantissa;
+            this->Cleanup();
+        }
+
+        long double GetMaximum()
+        {
+            return this->maxValue;
+        }
+
+        long double GetMinimum()
+        {
+            return this->minValue;
+        }
+
+        int GetBitSize()
+        {
+            return 
+                1 + this->exponentBits + this->mantissaBits;
         }
 
         void operator=( const FloatingPoint& someOther )
@@ -217,7 +274,10 @@ class FloatingPoint
 
         void SetValue( const std::string& someBitValue )
         {
-            if( someBitValue.size() != (1 + this->exponentBits + this->mantissaBits) )
+            if( 
+                someBitValue.size()
+                != (1 + this->exponentBits + this->mantissaBits)
+            )
             {
                 throw new std::range_error( "Number of bits are different!" );
             }
@@ -226,14 +286,19 @@ class FloatingPoint
 
             for( std::size_t i = 0; i < this->exponentBits; ++i )
             {
-                this->exponent[i] =
-                    atoi( someBitValue.substr( 1+i, 1 ).c_str() ) == 1;
+                this->exponent[i] = atoi( 
+                    someBitValue.substr( 1+i, 1 ).c_str() 
+                ) == 1;
             }
 
             for( std::size_t i = 0; i < this->mantissaBits; ++i )
             {
-                this->mantissa[i] =
-                    atoi( someBitValue.substr( 1+this->exponentBits+i, 1 ).c_str() ) == 1;
+                this->mantissa[i] = atoi( 
+                    someBitValue.substr( 
+                        1 + this->exponentBits+i,
+                        1 
+                    ).c_str() 
+                ) == 1;
             }
 
             this->UpdateFlags();
@@ -244,11 +309,11 @@ class FloatingPoint
             this->SetValue( someBitValue );
         }
 
-        void SetValue( float someValue )
+        void SetValue( long double someValue )
         {
             if( someValue == 0 )
             {
-                this->SetExponent( -128 );
+                this->SetExponent( -1 * this->excess );
                 this->SetMantissa( 1.0 );
             }
             else
@@ -329,11 +394,17 @@ class FloatingPoint
             return m;
         }
 
-        float GetValue() const
+        long double GetValue() const
         {
             if( this->isNotANumber )
             {
                 throw new std::range_error( "Is NAN!" );
+            }
+            else if( this->isInfinite )
+            {
+                std::stringstream ss;
+                ss << "Is " << (this->sign ? "-" : "+") << "infinite!";
+                throw new std::range_error( ss.str() );
             }
 
             if( this->isZero )
@@ -347,7 +418,7 @@ class FloatingPoint
             }
 
             //mantissa
-            float m = this->GetMantissa();
+            long double m = this->GetMantissa();
             int exp = this->GetExponent();
             if( exp > 0 )
             {
